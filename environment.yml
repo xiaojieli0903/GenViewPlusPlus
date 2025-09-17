@@ -1,0 +1,31 @@
+name: genview
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.8.5
+  - pip
+  - torchvision=0.12.0
+  - numpy=1.19.2
+  - pip:
+    - albumentations==0.4.3
+    - opencv-python==4.1.2.30
+    - pudb==2019.2
+    - imageio==2.9.0
+    - imageio-ffmpeg==0.4.2
+    - pytorch-lightning==1.0.8
+    - omegaconf==2.0.0
+    - test-tube>=0.7.5
+    - streamlit>=0.73.1
+    - einops==0.3.0
+    - more-itertools>=8.0.0
+    - transformers==4.33.3
+    - timm==0.9.7
+    - pillow==9.4.0
+    - tqdm==4.67.1
+    - diffusers==0.17.3
+    - tensorboard==2.13.0
+    - huggingface_hub==0.33.0
+    - open_clip_torch==2.22.0
+    - matplotlib==3.7.5
+    - git+https://github.com/openai/CLIP.git

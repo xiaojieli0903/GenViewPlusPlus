@@ -1,0 +1,13 @@
+data
+output
+
+*.pyc
+
+tmp.py
+
+tmp.sh
+nl.sh
+score.sh
+generate.sh
+train.sh
+linear.sh
