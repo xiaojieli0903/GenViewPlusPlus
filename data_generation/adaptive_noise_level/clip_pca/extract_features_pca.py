@@ -362,7 +362,13 @@ def main():
     # Visualize PCA histograms and determine threshold
     value_dict, prob_dict = visualize_pca_histograms(pca_features, args.output_dir)
     fg_thre = determine_threshold_from_histogram(prob_dict, args.fg_thre)
-
+    
+    # Saving foreground threshold
+    threshold_file = os.path.join(args.output_dir, "fg_threshold.txt")
+    with open(threshold_file, "w") as f:
+        f.write(str(fg_thre) + "\n")
+    print(f"Foreground threshold saved to {threshold_file}")
+    
     # Create masks and maps
     create_masks(pca_features.reshape(N, n_patches, -1)[:args.num_vis], fg_thre, args.output_dir)
     create_maps(pca_features.reshape(N, n_patches, -1)[:args.num_vis], args.output_dir)

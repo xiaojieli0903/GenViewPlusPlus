@@ -1,17 +1,3 @@
-# Copyright 2023 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import re
 import os
 import argparse
@@ -30,6 +16,28 @@ from diffusers import DiffusionPipeline, StableUnCLIPImg2ImgPipeline, StableUnCL
 torch.set_grad_enabled(False)
 
 
+
+def read_csv_with_fallback(file):
+    df = pd.read_csv(file, nrows=1)
+    has_header = not all(str(c).isdigit() for c in df.columns)
+
+    if has_header:
+        df = pd.read_csv(file)
+    else:
+        sample = pd.read_csv(file, header=None, nrows=1)
+        num_columns = sample.shape[1]
+
+        if num_columns == 2:
+            df = pd.read_csv(file, header=None, names=['image', 'prompt'])
+        elif num_columns == 3:
+            df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale'])
+        elif num_columns == 4:
+            df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale', 'noise_level'])
+        else:
+            raise ValueError(f"Unexpected number of columns: {num_columns}")
+    return df
+
+
 class PromptDataset(Dataset):
     """Build prompt loading dataset"""
 
@@ -42,13 +50,8 @@ class PromptDataset(Dataset):
             columns = re.findall(r'(?:[^,"]+|"[^"]*")+', first_line)
             num_columns = len(columns)
 
-        if num_columns == 2:
-            df = pd.read_csv(file, header=None, names=['image', 'prompt'])
-        elif num_columns == 3:
-            df = pd.read_csv(file, header=None, names=['image', 'guidance_scale', 'prompt'])
-        elif num_columns == 4:
-            df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale', 'noise_level'])
-        
+        df = read_csv_with_fallback(file)
+
         self.data_list = df.to_dict('records') 
         
         self.data_list = [

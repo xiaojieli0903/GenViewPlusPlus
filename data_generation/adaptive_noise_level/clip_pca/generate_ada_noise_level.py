@@ -33,12 +33,12 @@ def distribute_fg_ratios(input_file, output_dir, ranges, mapping_values):
 
     for value, lines in buffers.items():
         if lines:
-            output_file_path = os.path.join(output_dir, f'fg_ratios_{value}.txt')
+            output_file_path = os.path.join(output_dir, f'noise_level_{value}.txt')
             with open(output_file_path, 'w') as out_file:
                 out_file.writelines(lines)
             print(f"File saved: {output_file_path}")
         else:
-            print(f"No data for fg_ratios_{value}.txt")
+            print(f"No data for noise_level_{value}.txt")
 
     print(f"Distribution completed. Files saved in {output_dir}")
 
