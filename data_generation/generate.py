@@ -452,9 +452,10 @@ def main(opt):
         generated_images = False
         for j in range(opt.batch_size):
             for k in range(opt.n_samples):
-                tag = f"_scale-{float(data['guidance_scale'])}_noise-{int(data['noise_level'])}_seed{int(opt.seed)}"
-                    if len(images) > 1:
-                        tag += f"_sample{k}"
+                # tag = f"_scale-{float(data['guidance_scale'])}_noise-{int(data['noise_level'])}_seed{int(opt.seed)}"
+                tag = 'test' # TODO
+                # if len(images) > 1:   TODO
+                #     tag += f"_sample{k}"
                 print(len(ids_name), ids_name, j)
                 if not saver.check(ids_name[j], tag):
                     generated_images = True
@@ -477,7 +478,8 @@ def main(opt):
                 for k in range(opt.n_samples):
                     img = images[j*opt.n_samples+k]
                     img = img.resize((opt.img_save_size, opt.img_save_size))
-                    tag = f"_scale-{float(data['guidance_scale'])}_noise-{int(data['noise_level'])}_seed{int(opt.seed)}"
+                    # tag = f"_scale-{float(data['guidance_scale'])}_noise-{int(data['noise_level'])}_seed{int(opt.seed)}"
+                    tag = ''    # TODO
                     if len(images) > 1:
                         tag += f"_sample{k}"
                     saver.save(img, ids_name[j], tag)

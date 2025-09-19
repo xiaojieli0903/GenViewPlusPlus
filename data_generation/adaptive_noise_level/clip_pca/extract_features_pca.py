@@ -316,7 +316,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description='CLIP Feature Extraction and PCA Analysis')
     parser.add_argument('--input-list', type=str, required=True, help='Path to the file with image paths')
-    parser.add_argument('--output-dir', type=str, default='tools/clip_pca/pca_results/', help='Directory for saving results')
+    parser.add_argument('--output-dir', type=str, default='data/clip_pca/pca_results/', help='Directory for saving results')
     parser.add_argument('--batch-size', type=int, default=1024, help='Number of images to process per batch')
     parser.add_argument('--model', type=str, default='ViT-H-14', help='Name of the CLIP model to use')
     parser.add_argument('--training-data', type=str, default='laion2b_s32b_b79k', help='Pretrained model weights to use')

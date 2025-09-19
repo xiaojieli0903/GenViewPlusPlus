@@ -1,11 +1,11 @@
 #!/bin/bash
 
-INPUT_CSV="/home/lixiaojie/code/genview-clip/StableRep/data_generation/cc3m_50w-3rd/missing.csv"
-OUTPUT_CSV="/home/lixiaojie/code/genview-clip/StableRep/data_generation/cc3m_50w-3rd/score_50w-3rd_part2.csv"
+INPUT_CSV="../../data/CC3M/test.csv"
+OUTPUT_CSV="../../data/CC3M/test_score.csv"
 MODEL_NAME="deepseek"
 
 # Multi-GPU
-CUDA_DEVICES="0,1,2,3,4,5,6,7"
+CUDA_DEVICES="6,7"
 IFS=',' read -r -a GPU_LIST <<< "$CUDA_DEVICES"
 NUM_GPUS=${#GPU_LIST[@]}  # 计算 GPU 数量
 

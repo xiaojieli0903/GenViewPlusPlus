@@ -118,7 +118,7 @@ def get_args_parser():
     parser.add_argument('--folder_suffix_list', nargs='+')
     parser.add_argument('--real_images_path_suffix', nargs='+')
     parser.add_argument('--path1', default='/data3/datasets/CC3M/cc3m-wds/train_data',
-                        help='')
+                        help='')    # TODO
     parser.add_argument('--path2', default='/data1/datasets/CC3M/raw',
                         help='')
     parser.add_argument('--sample_mode', type=str, choices=['default', 'fixed+random', 'random'],

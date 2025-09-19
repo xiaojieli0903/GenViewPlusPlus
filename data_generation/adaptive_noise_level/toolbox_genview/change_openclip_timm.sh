@@ -30,7 +30,7 @@ replace_files() {
 
 # Replace files in the open_clip and timm directories
 echo "Updating open_clip..."
-replace_files "./tools/clip_pca/open_clip" "$site_packages_path/open_clip"
+replace_files "data_generation/adaptive_noise_level/clip_pca/open_clip" "$site_packages_path/open_clip"
 
 echo "Updating timm..."
-replace_files "./tools/clip_pca/timm" "$site_packages_path/timm"
+replace_files "data_generation/adaptive_noise_level/clip_pca/timm" "$site_packages_path/timm"

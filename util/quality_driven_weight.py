@@ -29,7 +29,7 @@ class quality_driven_module():
         for param in self.clip_model.parameters():
             param.requires_grad = False
         self.standard_array = torch.Tensor(np.load(
-                "/data/wangbei/datasets/CC3M/genview/pca_results/convnext_base_w-laion2b-s13b-b82k-augreg/eigenvecters/pca_vectors.npy").reshape(
+                "data_generation/adaptive_noise_level/clip_pca/pca_results/convnext_base_w-laion2b-s13b-b82k-augreg/eigenvecters/pca_vectors.npy").reshape(
                 -1)).cuda() # TODO
         print(f'Load standard_array done, shape = {self.standard_array.shape}')
         self.patch_number = 224 // self.patch_size
