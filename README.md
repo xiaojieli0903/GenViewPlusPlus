@@ -9,6 +9,9 @@ Compared to the original GenView framework, GenView++ generalizes the methodolog
 
 
 > **[GenView++: Adaptive View Generation and Quality-Driven Supervision for Vision and Vision-Language Representation Learning](https://arxiv.org/abs/xxx)**<br> 
+> [Xiaojie Li](https://xiaojieli0903.github.io/)^1,2, [Bei Wang]^1, [Jianlong Wu](https://jlwu1992.github.io)^1,2, [Liqiang Nie]^1, [Yue Yu](https://yuyue.github.io)^2, [Min Zhang](https://zhangminsuda.github.io)^1 <br>
+> ^1 Harbin Institute of Technology (Shenzhen), China, ^2 Pengcheng Laboratory, Shenzhen, China
+
 
 ## 🔨 Installation
 
