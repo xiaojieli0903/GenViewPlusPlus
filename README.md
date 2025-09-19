@@ -2,7 +2,11 @@
 
 ![GenView++ Framework](figs/framework.png)
 
-This repository contains the official implementation of **GenView++: Adaptive View Generation and Quality-Driven Supervision for Vision and Vision-Language Representation Learning**, presented at ECCV 2024.
+This repository contains the official implementation of **GenView++: Adaptive View Generation and Quality-Driven Supervision for Vision and Vision-Language Representation Learning**,  
+which serves as an extended version of our ECCV 2024 paper,  
+[**GenView: Enhancing View Quality with Pretrained Generative Model for Self-Supervised Learning**](https://arxiv.org/abs/2403.12003).  
+Compared to the original GenView framework, GenView++ generalizes the methodology from unimodal (vision-only) representation learning to a unified multimodal setting, introducing adaptive view generation strategies for multi-source conditions, as well as a multimodal quality-driven contrastive learning mechanism.  
+
 
 > **[GenView++: Adaptive View Generation and Quality-Driven Supervision for Vision and Vision-Language Representation Learning](https://arxiv.org/abs/xxx)**<br> 
 
