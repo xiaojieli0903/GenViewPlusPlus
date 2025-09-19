@@ -55,7 +55,7 @@ class VisionEncoder(nn.Module):
                 'labels': label_expand}     # [n_views * bsz]
 
 
-def stablerep_vit_small_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
+def model_vision_small_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
     vision_model = timm.create_model('vit_small_patch16_224', num_classes=0)
     model = VisionEncoder(vision_width=384, vision_model=vision_model,
                           ssl_mlp_dim=ssl_mlp_dim, ssl_emb_dim=ssl_emb_dim, **kwargs)
@@ -63,7 +63,7 @@ def stablerep_vit_small_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
     return model
 
 
-def stablerep_vit_base_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
+def model_base_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
     vision_model = timm.create_model('vit_base_patch16_224', num_classes=0)
     model = VisionEncoder(vision_width=768, vision_model=vision_model,
                           ssl_mlp_dim=ssl_mlp_dim, ssl_emb_dim=ssl_emb_dim, **kwargs)
@@ -71,7 +71,7 @@ def stablerep_vit_base_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
     return model
 
 
-def stablerep_vit_base_patch32(ssl_mlp_dim, ssl_emb_dim, **kwargs):
+def model_vision_base_patch32(ssl_mlp_dim, ssl_emb_dim, **kwargs):
     vision_model = timm.create_model('vit_base_patch32_224', num_classes=0)
     model = VisionEncoder(vision_width=768, vision_model=vision_model,
                           ssl_mlp_dim=ssl_mlp_dim, ssl_emb_dim=ssl_emb_dim, **kwargs)
@@ -79,7 +79,7 @@ def stablerep_vit_base_patch32(ssl_mlp_dim, ssl_emb_dim, **kwargs):
     return model
 
 
-def stablerep_vit_large_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
+def model_vision_large_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
     vision_model = timm.create_model('vit_large_patch16_224', num_classes=0)
     model = VisionEncoder(vision_width=1024, vision_model=vision_model,
                           ssl_mlp_dim=ssl_mlp_dim, ssl_emb_dim=ssl_emb_dim, **kwargs)
@@ -88,8 +88,8 @@ def stablerep_vit_large_patch16(ssl_mlp_dim, ssl_emb_dim, **kwargs):
 
 
 model_dict = {
-    'small': stablerep_vit_small_patch16,
-    'base': stablerep_vit_base_patch16,
-    'base_p32': stablerep_vit_base_patch32,
-    'large': stablerep_vit_large_patch16,
+    'small': model_vision_small_patch16,
+    'base': model_vision_base_patch16,
+    'base_p32': model_vision_base_patch32,
+    'large': model_vision_large_patch16,
 }

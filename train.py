@@ -18,15 +18,15 @@ import torchvision.transforms as transforms
 from dataset.util import GaussianBlur, DownSampleAndUpsample
 from dataset.data import SupconDataset
 from models.losses import MultiPosConLoss, MultiPosConLossMM, ImgTxtConLoss
-from models.StableRep import model_dict as v_model_dict
-from models.StableRepMM import model_dict as vt_model_dict
+from models.vision_models import model_dict as v_model_dict
+from models.multimodal_models import model_dict as vt_model_dict
 
 import util.misc as misc
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
 from util.quality_driven_weight import quality_driven_module
 
 def get_args_parser():
-    parser = argparse.ArgumentParser('StableRep pre-training', add_help=False)
+    parser = argparse.ArgumentParser('GenView pre-training', add_help=False)
     parser.add_argument('--epochs', default=15, type=int)
 
     # Model parameters
