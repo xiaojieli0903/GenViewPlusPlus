@@ -1,15 +1,15 @@
-# GenView++: Adaptive View Generation and Quality-Driven Supervision for Vision and Vision-Language Representation Learning
+# GenView++: Unifying Adaptive View Generation and Quality-Driven Supervision for Contrastive Representation Learning
 
 ![GenView++ Framework](figs/framework.png)
 
-This repository contains the official implementation of **GenView++: Adaptive View Generation and Quality-Driven Supervision for Vision and Vision-Language Representation Learning**,  
+This repository contains the official implementation of **GenView++: Unifying Adaptive View Generation and Quality-Driven Supervision for Contrastive Representation Learning**,  
 which serves as an extended version of our ECCV 2024 paper,  
 [**GenView: Enhancing View Quality with Pretrained Generative Model for Self-Supervised Learning**](https://arxiv.org/abs/2403.12003).  
 Compared to the original GenView framework, GenView++ generalizes the methodology from unimodal (vision-only) representation learning to a unified multimodal setting, introducing adaptive view generation strategies for multi-source conditions, as well as a multimodal quality-driven contrastive learning mechanism.  
 
 
-> **[GenView++: Adaptive View Generation and Quality-Driven Supervision for Vision and Vision-Language Representation Learning](https://arxiv.org/abs/xxx)**<br> 
-> [Xiaojie Li](https://xiaojieli0903.github.io/)^1,2, [Bei Wang]^1, [Jianlong Wu](https://jlwu1992.github.io)^1,2, [Liqiang Nie]^1, [Yue Yu](https://yuyue.github.io)^2, [Min Zhang](https://zhangminsuda.github.io)^1 <br>
+> **[GenView++: Unifying Adaptive View Generation and Quality-Driven Supervision for Contrastive Representation Learning](https://arxiv.org/abs/xxx)**<br> 
+> [Xiaojie Li](https://xiaojieli0903.github.io/)^1,2, [Bei Wang]^1, [Jianlong Wu](https://jlwu1992.github.io)^1,2, [Liqiang Nie](https://liqiangnie.github.io/index.html)^1, [Yue Yu](https://yuyue.github.io)^2, [Min Zhang](https://zhangminsuda.github.io)^1 <br>
 > ^1 Harbin Institute of Technology (Shenzhen), China, ^2 Pengcheng Laboratory, Shenzhen, China
 
 
