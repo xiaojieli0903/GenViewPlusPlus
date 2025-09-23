@@ -1,4 +1,6 @@
 data
 data_generation
-*.sh
 output
+
+*.sh
+*.pyc

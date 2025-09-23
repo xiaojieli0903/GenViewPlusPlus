@@ -108,7 +108,7 @@ class SupconDataset(Dataset):
             assert len(self.root_list) >= 2, "Need at least 2 roots for fixed+random sampling"
             selected_indices = [0, random.choice(range(1, len(self.root_list)))]
         elif self.sample_mode == 'random':
-            assert len(self.root_list) >= 2, "Need at least 2 roots for fixed+random sampling"
+            assert len(self.root_list) >= 1, "Need at least 1 root for random sampling"
             selected_indices = [random.choice(range(0, len(self.root_list)))]
         else:
             selected_indices = list(range(self.num_views))
