@@ -30,7 +30,16 @@ def read_csv_with_fallback(file):
         if num_columns == 2:
             df = pd.read_csv(file, header=None, names=['image', 'prompt'])
         elif num_columns == 3:
-            df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale'])
+            col3_nonzero = sample[2][sample[2] != 0]
+            if not col3_nonzero.empty:
+                first_value = col3_nonzero.iloc[0]
+                if first_value < 10:
+                    df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale'])
+                else:
+                    df = pd.read_csv(file, header=None, names=['image', 'prompt', 'noise_level'])
+            else:
+                # If the third column is all 0, the default guidance_scale
+                df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale'])
         elif num_columns == 4:
             df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale', 'noise_level'])
         else:

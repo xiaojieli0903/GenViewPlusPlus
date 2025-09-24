@@ -73,7 +73,7 @@ The calculated PCA vectors act as classifiers for distinguishing between foregro
 
 ```shell
 python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
-    --input-list data_generation/adaptive_noise_level/clip_pca/cc3m_sampled_10000img.txt \
+    --input-list data_generation/adaptive_noise_level/clip_pca/cc3m_sampled_10000pair.csv \
     --num-extract 10000 \
     --patch-size 14 \
     --num-vis 20 \
@@ -81,7 +81,7 @@ python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
     --training-data laion2b_s32b_b79k
 ```
 
-- `--input-list`: Path to the file containing the list of sampled images (`data_generation/adaptive_noise_level/clip_pca/train_sampled_1000cls_10img.txt`).
+- `--input-list`: Path to the file containing the list of sampled images (`data_generation/adaptive_noise_level/clip_pca/train_sampled_1000cls_10pair.csv`).
 - `--num-extract 10000`: Specifies the number of images to process.
 - `--patch-size 14`: Patch size used by the model.
 - `--num-vis 20`: Number of images to visualize.
@@ -103,7 +103,7 @@ First, we need to extract features for each image in the dataset. This process m
 
 ```shell
 python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
-    --input-list data/CC3M/image_paths.txt \
+    --input-list data/CC3M/pairs.csv \
     --num-extract -1 \
     --patch-size 14 \
     --num-vis 20 \
@@ -124,45 +124,35 @@ Using the previously computed PCA vectors and the foreground-background threshol
 ```shell
 python data_generation/adaptive_noise_level/clip_pca/calculate_fgratio.py \
     --input-dir data_generation/adaptive_noise_level/clip_pca/pca_results/ViT-H-14-laion2b_s32b_b79k/ \
-    --input-list data/CC3M/image_paths.txt \
+    --input-list data/CC3M/pairs.csv \
     --output-dir data/CC3M/ \
     --fg-thre {computed_threshold} \
     --mask-type {gt_or_lt}
 ```
 - `--input-dir`: Path to the directory to save extracted features and PCA eigenvecters.
 - `--input-list`: Path to the file containing the list of all training images.
-- `--output-dir`: Directory where the `fg_ratios.txt` file will be saved.
+- `--output-dir`: Directory where the `fg_ratios.csv` file will be saved.
 - `--fg-thre {computed_threshold}`: The foreground-background threshold value (`fg_thre`) calculated from **Step 1** using PCA analysis. This threshold ensures the proper separation of foreground and background regions.
 - `--mask-type {gt_or_lt}`: Determines whether greater-than (gt) or less-than (lt) the threshold should be classified as foreground. Use --mask-type lt if black = foreground, or --mask-type gt if white = foreground, based on the masks saved in masks/ and the corresponding reference images in original_images/.
 
-A file named `fg_ratios.txt` will be generated in the specified output directory. This file contains a list of image paths paired with their respective `fg_ratio` values.  
-Each line of `fg_ratios.txt` is structured as:  
-    ```
-    <image_path> <fg_ratio>
-    ```
-    Example:  
-    ```
-    data/CC3M/img_0001.jpg 0.42
-    data/CC3M/img_0002.jpg 0.38
-    ```
+A file named `fg_ratios.csv` will be generated in the specified output directory. This file contains a list of image paths paired with their respective `fg_ratio` values (and prompts).
   
 ##### **1.1.4 Generate Adaptive Noise Levels**
 
-Finally, we distribute the original `fg_ratios.txt` entries into separate files based on specified ranges and mapping values. Each output file is named after its corresponding mapped noise level value (e.g., `fg_ratios_0.txt`, `fg_ratios_100.txt`, etc.), containing image paths and their `fg_ratio` values that fall into the respective ranges.
-
+Finally, we convert the original `fg_ratios.csv` into a single CSV file with adaptive noise levels.
+Each entry in the output file contains three fields: image, prompt, noise_level.
 **Command to Generate Noise Level Files:**
 
 ```shell
 python data_generation/adaptive_noise_level/clip_pca/generate_ada_noise_level.py \
-    --input-file data/CC3M/fg_ratios.txt \
+    --input-file data/CC3M/fg_ratios.csv \
     --output-dir data/CC3M/
 ```
 
-- `--input-file`: Path to the `fg_ratios.txt` generated in the previous step.
+- `--input-file`: Path to the `fg_ratios.csv` generated in the previous step.
 - `--output-dir`: Directory where the noise level files will be saved.
 
 These files categorize images based on their foreground ratios, allowing us to assign appropriate noise levels during image generation to achieve the desired balance between semantic consistency and diversity.
-    ```
 
 #### **1.2 Calculate Guidance Scale**
 
@@ -268,7 +258,7 @@ Use the following command to extract features and compute PCA:
 
 ```bash
 python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
-    --input-list data_generation/adaptive_noise_level/clip_pca/cc3m_sampled_10000img.txt \
+    --input-list data_generation/adaptive_noise_level/clip_pca/cc3m_sampled_10000pair.csv \
     --num-extract 10000 \
     --patch-size 32 \
     --num-vis 20 \
@@ -306,3 +296,11 @@ torchrun --nproc_per_node=4 --nnodes=1 \
     --syn_idx_list 1 2 3 --syn_ratio 1.0 \
     --syn_csv_path /data/CC3M/cc3m.csv \
     --early_loss_coefs 1 0 1 0 --later_loss_coefs 1 1 1 1 \
+
+## Downsteam Tasks
+
+
+
+## Model Weights
+The pre-trained weights used in this paper are not yet released.  
+They will be updated and shared in this repository soon. Stay tuned!
