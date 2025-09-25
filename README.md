@@ -274,7 +274,7 @@ python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
 These PCA vectors are used to generate foreground and background attention maps during pretraining. We provide precomputed PCA vectors, which can be found at `data_generation/adaptive_noise_level/clip_pca/pca_results/convnext_base_w_laion2b-s13k-b82k-augreg/eigenvectors/pca_vectors.npy`
 
 ## 🔄 Training
-
+```bash
 torchrun --nproc_per_node=4 --nnodes=1 \
   --node_rank=0 --master_port=20001 \
   train.py \
@@ -296,10 +296,80 @@ torchrun --nproc_per_node=4 --nnodes=1 \
     --syn_idx_list 1 2 3 --syn_ratio 1.0 \
     --syn_csv_path /data/CC3M/cc3m.csv \
     --early_loss_coefs 1 0 1 0 --later_loss_coefs 1 1 1 1 \
+```
 
 ## Downsteam Tasks
+### Linear Probe
+After pretraining, we evaluate the learned representations via linear probing on a range of downstream datasets.
+We provide a bash script to launch linear probe experiments in parallel on different datasets with flexible GPU assignment.
+```bash
+# Pretrained model checkpoint
+work_dir=""
+epochs=90
+model="base"
+pretrained="$work_dir/epoch_last.pth"
 
+# Task configuration:
+# enable | dataset | gpus     | batch_size | drop_last | use_bn
+TASK_CONFIGS=(
+  "1    in1k        0,1,2,3,4,5,6,7 256       1           0"
+  "1    cifar10     0,1             256       1           0"
+  "1    in100       2,3             256       1           0"
+  "1    cifar100    2,3             256       1           0"
+  "1    dtd         2               64        0           0"
+  "1    flowers     4               64        0           0"
+  "1    food101     5,6             256       1           0"
+  "1    sun397      4               256       1           0"
+  "1    aircraft    7               128       0           0"
+  "1    pets        7               128       0           0"
+  "1    caltech101  1               128       0           0"
+)
 
+base_port=60000
+index=0
+
+for config in "${TASK_CONFIGS[@]}"; do
+  read -r enable task gpus batch_size drop_last use_bn <<< "$config"
+
+  if [ "$enable" -ne 1 ]; then
+    echo "Skipping $task"
+    ((index++))
+    continue
+  fi
+
+  echo "Launching $task on GPUs $gpus"
+
+  num_gpu=$(echo "$gpus" | awk -F',' '{print NF}')
+  port=$((base_port + index))
+  linear_dir="linear_${task}_${num_gpu}xb${batch_size}_${epochs}e"
+
+  cmd="CUDA_VISIBLE_DEVICES=$gpus torchrun --nproc_per_node=$num_gpu \
+    --nnodes=1 --node_rank=0 --master_port=$port \
+    main_linear.py --model $model --epochs $epochs \
+    --pretrained $pretrained \
+    --output-dir $work_dir/$linear_dir \
+    --dataset $task \
+    --batch-size $batch_size"
+
+  if [ "$drop_last" -eq 1 ]; then
+    cmd=\"$cmd --drop_last\"
+  fi
+  if [ "$use_bn" -eq 1 ]; then
+    cmd=\"$cmd --use_bn\"
+  fi
+
+  eval \"$cmd &\"
+
+  ((index++))
+done
+
+wait
+```
+
+### Other Tasks (Zero-shot Classification & Retrieval)
+For other evaluation tasks such as zero-shot classification and zero-shot retrieval, we leverage the [CLIP_benchmark](https://github.com/LAION-AI/CLIP_benchmark).
+This library provides a unified interface to evaluate vision-language models on a wide range of benchmarks. We use it to measure our pretrained model’s generalization ability without further fine-tuning.
+👉 Note: The specific modifications required to integrate our method into the CLIP_benchmark library will be released shortly.
 
 ## Model Weights
 The pre-trained weights used in this paper are not yet released.  

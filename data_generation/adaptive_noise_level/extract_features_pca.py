@@ -324,7 +324,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description='CLIP Feature Extraction and PCA Analysis')
     parser.add_argument('--input-list', type=str, required=True, help='Path to the file with data')
-    parser.add_argument('--output-dir', type=str, default='data/clip_pca/pca_results/', help='Directory for saving results')
+    parser.add_argument('--output-dir', type=str, default='data/pca_results/', help='Directory for saving results')
     parser.add_argument('--batch-size', type=int, default=1024, help='Number of images to process per batch')
     parser.add_argument('--model', type=str, default='ViT-H-14', help='Name of the CLIP model to use')
     parser.add_argument('--training-data', type=str, default='laion2b_s32b_b79k', help='Pretrained model weights to use')
@@ -339,7 +339,7 @@ def main():
                                                                  device=device)
     print(f'Loading model: {args.model} with pretrained weights: {args.training_data}. Preprocess: {preprocess}')
 
-    image_paths = read_image_prompt_from_csv(args.input_list, args.num_extract)
+    image_paths = read_image_from_csv(args.input_list, args.num_extract)
     args.output_dir = os.path.join(args.output_dir, f'{args.model}-{args.training_data}')
     create_output_directory(args.output_dir)
     if args.num_extract == -1:

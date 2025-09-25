@@ -9,7 +9,7 @@ from tqdm import tqdm
 import torchvision.transforms as transforms
 
 
-def read_image_paths_from_csv(csv_file, prefix=''):
+def read_infos_from_csv(csv_file, prefix=''):
     """
     Read image paths and prompts from a CSV file and optionally prepend a prefix.
 
@@ -164,7 +164,7 @@ def main():
     pca_vectors = load_pca_vectors(args.input_dir)
 
     # Prepare image paths and output directory
-    image_paths, prompts = read_image_paths_from_csv(args.input_list, prefix=args.input_prefix)
+    image_paths, prompts = read_infos_from_csv(args.input_list, prefix=args.input_prefix)
 
     # Calculate ratios
     calculate_ratios(
