@@ -457,7 +457,7 @@ class VisionTransformer(nn.Module):
         else:
             return x[:, 0], x[:, 1:]
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor): # TODO
 
         # to patches - whether to use dual patchnorm - https://arxiv.org/abs/2302.01327v1
         if self.input_patchnorm:

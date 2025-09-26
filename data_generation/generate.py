@@ -44,7 +44,9 @@ def read_csv_with_fallback(file):
             df = pd.read_csv(file, header=None, names=['image', 'prompt', 'guidance_scale', 'noise_level'])
         else:
             raise ValueError(f"Unexpected number of columns: {num_columns}")
-    return df
+    has_guidance_scale = 'guidance_scale' in df.columns
+    has_noise_level = 'noise_level' in df.columns
+    return df, has_guidance_scale, has_noise_level
 
 
 class PromptDataset(Dataset):
@@ -59,7 +61,9 @@ class PromptDataset(Dataset):
             columns = re.findall(r'(?:[^,"]+|"[^"]*")+', first_line)
             num_columns = len(columns)
 
-        df = read_csv_with_fallback(file)
+        df, has_guidance_scale, has_noise_level = read_csv_with_fallback(file)
+        self.has_guidance_scale = has_guidance_scale
+        self.has_noise_level = has_noise_level
 
         self.data_list = df.to_dict('records') 
         
@@ -204,7 +208,7 @@ def parse_args():
         type=str,
         nargs="?",
         help="dir to write results to",
-        default="outputs/txt2img-samples"
+        default="data/outputs"
     )
     parser.add_argument(
         "--img_save_size",
@@ -215,7 +219,7 @@ def parse_args():
     parser.add_argument(
         "--conditioned_mode",
         type=str,
-        default='txt',
+        default='imgtxt',
         help="mode of the condition"
     )
     parser.add_argument(
@@ -244,7 +248,7 @@ def parse_args():
     parser.add_argument(
         "--steps",
         type=int,
-        default=50,
+        default=20,
         help="number of ddim sampling steps",
     )
     parser.add_argument(
@@ -263,7 +267,7 @@ def parse_args():
         default=0.0,
         help="ddim eta (eta=0.0 corresponds to deterministic sampling",
     )
-    parser.add_argument(
+    parser.add_argument(    # TODO 和img_save_size的区别
         "--H",
         type=int,
         default=512,
@@ -290,7 +294,7 @@ def parse_args():
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=12,
+        default=1,
         help="how many prompts used in each batch"
     )
     parser.add_argument(
@@ -300,7 +304,7 @@ def parse_args():
         help="how many samples to produce for each given prompt. A.k.a. batch size",
     )
     parser.add_argument(
-        "--scale",
+        "--guidance_scale",
         type=float,
         default=9.0,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
@@ -320,6 +324,11 @@ def parse_args():
         "--root_path",
         type=str,
         help="root path of raw images",
+    )
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        help="Path to the pre-trained model used for generation",
     )
     parser.add_argument(
         "--seed",
@@ -364,21 +373,6 @@ def parse_args():
         default=0,
         help="current node index",
     )
-    
-    parser.add_argument('--gs_values',
-        type=float, 
-        nargs='+', 
-        default=[2.0,5.0,8.0],
-        help='List of integers')
-    parser.add_argument('--nl_values',
-        type=int, 
-        nargs='+', 
-        default=[0,100,200],
-        help='List of integers')
-    parser.add_argument('--suffix',
-        type=str, 
-        default='',)
-
     opt = parser.parse_args()
     return opt
 
@@ -387,31 +381,42 @@ class StableUnCLIP:
     """
     Wrapper class for Stable UnCLIP image-to-image model.
     """
-    def __init__(self, conditioned_mode='txt'):
+    def __init__(self, model_path, conditioned_mode='txt'):
         home_path = os.environ['HOME']
+        default_img_model_path = f"{home_path}/.cache/huggingface/hub/models--stabilityai--stable-diffusion-2-1-unclip/snapshots/e99f66a92bdcd1b0fb0d4b6a9b81b3b37d8bea44"
+        default_txt_model_path = f"{home_path}/.cache/huggingface/hub/stable-diffusion-2-1"
+
+        self.model_path = model_path
+        if self.model_path is None:
+            if conditioned_mode in ['img', 'imgtxt']:
+                self.model_path = default_img_model_path
+            elif conditioned_mode == 'txt':
+                self.model_path = default_txt_model_path
+                
         self.conditioned_mode = conditioned_mode
+
+        # Load the appropriate model based on the conditioned_mode
         if conditioned_mode in ['img', 'imgtxt']:
-            id_or_path = f"{home_path}/.cache/huggingface/hub/models--stabilityai--stable-diffusion-2-1-unclip/snapshots/e99f66a92bdcd1b0fb0d4b6a9b81b3b37d8bea44"
             self.pipe = StableUnCLIPImg2ImgPipeline.from_pretrained(
-                id_or_path,
-                torch_dtype=torch.float16, revision="fp16"
+                self.model_path,
+                torch_dtype=torch.float16, 
+                revision="fp16"
             ).to("cuda")
         elif conditioned_mode in ['txt']:
-            id_or_path =  f"{home_path}/.cache/huggingface/hub/stable-diffusion-2-1"
             self.pipe = StableDiffusionPipeline.from_pretrained(
-                id_or_path,
+                self.model_path,
                 torch_dtype=torch.float16
             ).to("cuda")
             self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
 
-    def generate(self, img=None, prompt=None, time=1, guidance_scale=2, noise_level=100):
+
+    def generate(self, img=None, prompt=None, time=1, steps=20, guidance_scale=2, noise_level=100):
         """
         Generate image-to-image transformations.
         """
-        print(f"guidance_scale:{guidance_scale}, noise_level:{noise_level}, prompt:{prompt}")
         kwargs = dict(
             guidance_scale=guidance_scale,
-            num_inference_steps=20,
+            num_inference_steps=steps,
             noise_level=noise_level,
             num_images_per_prompt=time,
         )
@@ -429,22 +434,27 @@ def main(opt):
     torch.manual_seed(opt.seed)
     torch.cuda.manual_seed_all(opt.seed)
     
-    # data saver
-    folder_name =f'{opt.conditioned_mode}_scale{opt.scale}_noise{opt.noise_level}_times{opt.n_nodes}_seed{opt.seed}' + opt.suffix
-    saver = ImageSaver(os.path.join(opt.outdir, folder_name), opt)
+    def make_tag(k: int, n_samples: int) -> str:
+        return f"_sample{k}" if n_samples > 1 else ""
 
     # get the dataset and loader
     n_skip = opt.n_nodes * opt.n_gpus
     start = opt.node_idx * opt.n_gpus + opt.gpu_idx
-    dataset = PromptDataset(file=opt.from_file, n_skip=n_skip, start=start, outdir=saver.outdir, opt=opt)
+    dataset = PromptDataset(file=opt.from_file, n_skip=n_skip, start=start, outdir=opt.outdir, opt=opt)
     data_loader = DataLoader(dataset,
                              batch_size=opt.batch_size,
                              shuffle=False,
                              num_workers=1)
     print("images to generate:", len(dataset))
     
+    # data saver
+    gs_str = 'ada' if dataset.has_guidance_scale else str(opt.guidance_scale)
+    nl_str = 'ada' if dataset.has_noise_level else str(opt.noise_level)
+    folder_name =f'{opt.conditioned_mode}_guidance-{gs_str}_noise-{nl_str}_times{opt.n_nodes}_seed{opt.seed}'
+    saver = ImageSaver(os.path.join(opt.outdir, folder_name), opt)
+
     # get the model
-    generator = StableUnCLIP(opt.conditioned_mode)
+    generator = StableUnCLIP(opt.model_path, opt.conditioned_mode)
     
     for (i, data) in enumerate(data_loader): 
         prompts = data['prompt']
@@ -459,13 +469,9 @@ def main(opt):
             imgs = imgs_paths
 
         generated_images = False
-        for j in range(opt.batch_size):
+        for j in range(len(ids_name)):
             for k in range(opt.n_samples):
-                # tag = f"_scale-{float(data['guidance_scale'])}_noise-{int(data['noise_level'])}_seed{int(opt.seed)}"
-                tag = 'test' # TODO
-                # if len(images) > 1:   TODO
-                #     tag += f"_sample{k}"
-                print(len(ids_name), ids_name, j)
+                tag = make_tag(k, opt.n_samples)
                 if not saver.check(ids_name[j], tag):
                     generated_images = True
                     break
@@ -474,23 +480,26 @@ def main(opt):
             if generated_images:
                 break
 
-        opt.scale, opt.noise_level = torch.tensor(opt.scale), torch.tensor(opt.noise_level)
+        opt.guidance_scale, opt.noise_level = torch.tensor(opt.guidance_scale), torch.tensor(opt.noise_level)
         if generated_images:
             kwargs = dict(
-                guidance_scale=data.get('guidance_scale', opt.scale).item(), 
+                guidance_scale=data.get('guidance_scale', opt.guidance_scale).item(), 
                 noise_level=data.get('noise_level', opt.noise_level).item()
             )
             print(f"image:{imgs_paths}, kwargs:{kwargs}")
-            images = generator.generate(img=imgs, prompt=prompts, time=opt.n_samples, **kwargs)
+            images = generator.generate(
+                img=imgs, 
+                prompt=prompts, 
+                time=opt.n_samples, 
+                steps=opt.steps, 
+                **kwargs)
+
             # save images
-            for j in range(opt.batch_size):
+            for j in range(len(ids_name)):
                 for k in range(opt.n_samples):
                     img = images[j*opt.n_samples+k]
                     img = img.resize((opt.img_save_size, opt.img_save_size))
-                    # tag = f"_scale-{float(data['guidance_scale'])}_noise-{int(data['noise_level'])}_seed{int(opt.seed)}"
-                    tag = ''    # TODO
-                    if len(images) > 1:
-                        tag += f"_sample{k}"
+                    tag = make_tag(k, opt.n_samples)
                     saver.save(img, ids_name[j], tag)
         else:
             continue

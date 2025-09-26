@@ -99,7 +99,7 @@ class CSVTextDataset(Dataset):
             with open(output_csv, "r", encoding="utf-8") as out_file:
                 reader = csv.reader(out_file, quotechar='"', skipinitialspace=True)
                 if has_header:
-                    next(reader, None)  # 跳过标题行
+                    next(reader, None)
                 for row in reader:
                     if row and len(row) > 0:
                         existing_keys.add(row[0])
@@ -140,11 +140,14 @@ def parse_args():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--input_csv", type=str, required=True, help="Path to input CSV file")
+    parser.add_argument("--has_header", type=bool, default=True, help="Whether the input file contains a header row.")
     parser.add_argument("--output_csv", type=str, required=True, help="Path to output CSV file")
     parser.add_argument("--explain", action="store_true", help="Whether to generate explanations")
     
     parser.add_argument("--model_name", type=str, required=True, help="Model name for processing")
-    
+    parser.add_argument("--model_path", type=str, default=os.path.expanduser("~/.cache/huggingface/hub/DeepSeek-V2-Lite-Chat"), 
+                        help="Path to the pretrained language model.")
+
     parser.add_argument("--n_gpus", type=int, default=1, help="Total number of GPUs used")
     parser.add_argument("--gpu_rank", type=int, default=0, help="Current GPU index")
     
@@ -180,55 +183,62 @@ def is_score(value):
     
 def main():
     opt = parse_args()
-    
-    # fix the seed for reproducibility
     setup_seed(opt.seed + get_rank())
     
+    score_to_guidance = {"1": "8", "2": "6", "3": "4", "4": "2"}
+
     output_csv = opt.output_csv
-    # output_csv = opt.output_csv[:-4] + "_" + str(opt.gpu_rank)+".csv"
     output_csv_with_explanation = output_csv[:-4] + "_withEX.csv"
     
     make_dir(os.path.dirname(output_csv))
     make_dir(os.path.dirname(output_csv_with_explanation))
 
-    dataset = CSVTextDataset(opt.input_csv, output_csv, start=opt.gpu_rank, n_skip=opt.n_gpus)
+    dataset = CSVTextDataset(opt.input_csv, output_csv, start=opt.gpu_rank, n_skip=opt.n_gpus, has_header=opt.has_header)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
     
-    returned_model = load_model(opt.model_name, model_path="/home/lixiaojie/.cache/huggingface/hub/DeepSeek-V2-Lite-Chat")
+    returned_model = load_model(opt.model_name, model_path=opt.model_path)
     
     start_time = time.time()
-    with open(output_csv, "a", newline="") as file1, \
-        open(output_csv_with_explanation, "a", newline="") as file2, \
-        open("re-score.txt", "a") as file3:
+    with open(output_csv, "a", newline="") as file1, open("re-score.txt", "a") as file3:
         writer1 = csv.writer(file1)
-        writer2 = csv.writer(file2)
+
+        writer2 = None
+        if opt.explain:
+            file2 = open(output_csv_with_explanation, "a", newline="")
+            writer2 = csv.writer(file2)
+
+        write_header1 = not os.path.exists(output_csv) or os.path.getsize(output_csv) == 0
+        if write_header1:
+            writer1.writerow(['image', 'prompt', 'guidance_scale'])
+
+        if opt.explain:
+            write_header2 = not os.path.exists(output_csv_with_explanation) or os.path.getsize(output_csv_with_explanation) == 0
+            if write_header2:
+                writer2.writerow(['image', 'prompt', 'guidance_scale', 'explanation'])
 
         for row in tqdm(dataset, total=len(dataset), desc="Processing", unit="file"):
             image_name, text = row[0], row[1]
             score, times = "", 0
-            while ((not is_score(score)) and times<5):
+            while ((not is_score(score)) and times < 5):
                 score, explanation = score_on_text(returned_model, text, opt.explain)
                 if times:
                     print(f"re score:{text}")
                     file3.write(f"re score:{text}\n")
                     file3.flush()
                 times += 1
-            writer1.writerow([image_name, score, text])
+
+            guidance_scale = score_to_guidance.get(score, score)
+            writer1.writerow([image_name, text, guidance_scale])
             if opt.explain:
-                writer2.writerow([image_name, score, text, explanation])
-            print(f"Processed: {image_name} → Score: {score}")
-            # except Exception as e:
-            #     print(f"Error processing {image_name}: {str(e)}. Model: {opt.model_name}")
+                writer2.writerow([image_name, text, guidance_scale, explanation])
+
+            print(f"Processed: {image_name} → Score: {score} → Guidance Scale: {guidance_scale}")
+
+        if opt.explain:
+            file2.close()
 
     end_time = time.time()
-    print(f"total time: {end_time - start_time:.2f} 秒")
-    
-    if not opt.explain:
-        if os.path.exists(output_csv_with_explanation):
-            try:
-                os.remove(output_csv_with_explanation)
-            except Exception as e:
-                print(f"error when delete file: {e}")
+    print(f"total time: {end_time - start_time:.2f} seconds")
 
 
 if __name__ =='__main__':

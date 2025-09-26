@@ -236,7 +236,11 @@ class CLIP(nn.Module):
     def encode_image(self, image, normalize: bool = False, 
                      output_features_results: bool = False,
                      output_features: bool = False):
-        features = self.visual(image, output_features_results=output_features_results, output_features=output_features)
+        try:
+            features = self.visual(image, output_features_results=output_features_results, output_features=output_features)
+        except TypeError:
+            features = self.visual(image)
+            
         if isinstance(features, tuple):
             return tuple(F.normalize(f, dim=-1) for f in features) if normalize else features
         else:

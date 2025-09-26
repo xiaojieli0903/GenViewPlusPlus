@@ -1,6 +1,12 @@
 data
 output
 
-tmp.py
-*.sh
 *.pyc
+
+tmp.py
+
+nl.sh
+score.sh
+generate.sh
+train.sh
+linear.sh

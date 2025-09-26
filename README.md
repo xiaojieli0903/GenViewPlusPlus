@@ -51,7 +51,7 @@ pip install -r requirements.txt
 Apply modifications to `open_clip` and `timm`:
 
 ```bash
-sh data_generation/adaptive_noise_level/toolbox_genview/change_openclip_timm.sh
+sh modifications/change_openclip_timm.sh
 ```
 
 ## 📷 Adaptive View Generation
@@ -72,8 +72,8 @@ The calculated PCA vectors act as classifiers for distinguishing between foregro
 **Command to Extract Features and Perform PCA Analysis:**
 
 ```shell
-python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
-    --input-list data_generation/adaptive_noise_level/clip_pca/cc3m_sampled_10000pair.csv \
+python data_generation/adaptive_noise_level/extract_features_pca.py \
+    --input-list data/CC3M/cc3m_sampled_10000pair.csv \
     --num-extract 10000 \
     --patch-size 14 \
     --num-vis 20 \
@@ -81,7 +81,7 @@ python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
     --training-data laion2b_s32b_b79k
 ```
 
-- `--input-list`: Path to the file containing the list of sampled images (`data_generation/adaptive_noise_level/clip_pca/train_sampled_1000cls_10pair.csv`).
+- `--input-list`: Path to the file containing the list of sampled images (`data/CC3M/cc3m_sampled_10000pair.csv`).
 - `--num-extract 10000`: Specifies the number of images to process.
 - `--patch-size 14`: Patch size used by the model.
 - `--num-vis 20`: Number of images to visualize.
@@ -102,8 +102,9 @@ First, we need to extract features for each image in the dataset. This process m
 **Command to Extract Features:**
 
 ```shell
-python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
-    --input-list data/CC3M/pairs.csv \
+
+python data_generation/adaptive_noise_level/extract_features_pca.py \
+    --input-list data/CC3M/paris.csv \
     --num-extract -1 \
     --patch-size 14 \
     --num-vis 20 \
@@ -122,8 +123,8 @@ Using the previously computed PCA vectors and the foreground-background threshol
 **Command to Calculate `fg_ratio`**:
 
 ```shell
-python data_generation/adaptive_noise_level/clip_pca/calculate_fgratio.py \
-    --input-dir data_generation/adaptive_noise_level/clip_pca/pca_results/ViT-H-14-laion2b_s32b_b79k/ \
+python data_generation/adaptive_noise_level/calculate_fgratio.py \
+    --input-dir data/pca_results/ViT-H-14-laion2b_s32b_b79k/ \
     --input-list data/CC3M/pairs.csv \
     --output-dir data/CC3M/ \
     --fg-thre {computed_threshold} \
@@ -144,7 +145,7 @@ Each entry in the output file contains three fields: image, prompt, noise_level.
 **Command to Generate Noise Level Files:**
 
 ```shell
-python data_generation/adaptive_noise_level/clip_pca/generate_ada_noise_level.py \
+python data_generation/adaptive_noise_level/generate_ada_noise_level.py \
     --input-file data/CC3M/fg_ratios.csv \
     --output-dir data/CC3M/
 ```
@@ -164,7 +165,7 @@ The script supports both **multi-GPU** and **single-GPU** execution for flexible
 ```bash
 CUDA_DEVICES="0,1,2,3,4,5,6,7"
 IFS=',' read -r -a GPU_LIST <<< "$CUDA_DEVICES"
-NUM_GPUS=${#GPU_LIST[@]}  # 计算 GPU 数量
+NUM_GPUS=${#GPU_LIST[@]}
 
 echo "Using GPUs: ${GPU_LIST[*]} for parallel processing."
 
@@ -173,9 +174,9 @@ do
     GPU_ID=${GPU_LIST[i]}
     echo "Starting process on GPU $GPU_ID..."
     CUDA_VISIBLE_DEVICES=$GPU_ID python data_generation/adaptive_guidance_scale/score.py \
-        --input_csv INPUT_CSV \
-        --output_csv OUTPUT_CSV \
-        --model_name MODEL_NAME \
+        --input_csv INPUT_CSV   \ # Enter the path of input file name here
+        --output_csv OUTPUT_CSV \ # Enter the path of output file name here
+        --model_name MODEL_NAME \ # Enter the model name (e.g.'deepseek') for evaluation here 
         --gpu_rank $i \
         --n_gpus $NUM_GPUS &
 done
@@ -187,66 +188,37 @@ echo "All GPU processes finished!"
 ##### **Single-GPU Example**
 
 ```bash
-CUDA_VISIBLE_DEVICES=3 python data_generation/adaptive_guidance_scale/score.py \
-        --input_csv INPUT_CSV \
-        --output_csv OUTPUT_CSV \
-        --model_name MODEL_NAME \
+CUDA_VISIBLE_DEVICES=0 python data_generation/adaptive_guidance_scale/score.py \
+        --input_csv INPUT_CSV   \ # Enter the path of input file name here
+        --output_csv OUTPUT_CSV \ # Enter the path of output file name here
+        --model_name MODEL_NAME \ # Enter the model name (e.g.'deepseek') for evaluation here 
         --gpu_rank 0 --n_gpus 1
 ```
 
-
-### **Step 2: adaptive generation**
-
-We provide ready-to-use commands for adaptive generation. You can launch either **multi-GPU** or **single-GPU** runs depending on your setup.
-
-#### **Multi-GPU Example**
+### **Step 2: merge the noise level and guidance scale if needed**
 ```bash
-node_idx=0          # index of this computing node (useful for multi-node training)
-n_nodes=1           # total number of nodes
-gpu_list=(0 1 2 3)  # list of GPUs to use
-n_gpus=${#gpu_list[@]}  # number of GPUs
-
-for ((i=0;i<$n_gpus;i++)); do
-    export CUDA_VISIBLE_DEVICES=${gpu_list[i]}
-    --outdir /path/to/output/dir \                  # Directory to save generated images
-        --conditioned_mode 'txt' \                  # Conditioning type: 'txt', 'img', or 'imgtxt'
-        --scale 7.5 \                               # Guidance scale for classifier-free guidance
-        --batch_size 1 \                            # Number of samples processed per GPU step
-        --from_file /path/to/input/prompts.csv \    # CSV file containing metadata including prompts
-        --root_path /path/to/images \               # Path to original dataset (for image-conditioned mode)
-        --gpu_idx $i \                              # Index of GPU in current node
-        --n_gpus $n_gpus \                          # Number of GPUs per node
-        --node_idx $node_idx \                      # Node index (for multi-node training)
-        --n_nodes $n_nodes \                        # Total number of nodes
-        --n_samples 1 \                             # Number of samples to generate per condaition
-        --img_save_size 512 &                       # Resolution of generated images
-done
+python data_generation/merge.py \
+    --csv_gs data/CC3M/guidance_scale.csv \
+    --csv_nl data/CC3M/noise_level.csv \
+    --output_dir data/CC3M/
 ```
 
-#### **Single-GPU Example**
+### **Step 3: adaptive generation**
 
-```bash
-node_idx=0
-n_nodes=1
-n_gpus=1
-export CUDA_VISIBLE_DEVICES=0   # Use GPU 0
+We provide ready-to-use scripts (scripts/gen_multi.sh and scripts/gen_single.sh) for adaptive generation. You can launch either **multi-GPU** or **single-GPU** runs depending on your setup.
 
-python txt2img_ours_v2.py \
-    --outdir /path/to/output/dir \           # Directory to save generated images
-    --conditioned_mode 'imgtxt' \            # Conditioning mode (image + text)
-    --scale 5.0 \                            # Guidance scale
-    --batch_size 1 \                         # Samples per step
-    --from_file /path/to/input.csv \         # Input CSV with prompts and/or image paths
-    --root_path /path/to/raw/images \        # Path to dataset
-    --noise_level 0 \                        # Noise level for image-conditioned generation
-    --gpu_idx 0 \                            # Index of the GPU used
-    --n_gpus $n_gpus \                       # Number of GPUs (1 here)
-    --node_idx $node_idx \                   # Node index
-    --n_nodes $n_nodes \                     # Total nodes
-    --n_samples 2 \                          # Number of samples per input
-    --img_save_size 512                      # Final image resolution
-```
-
+#### **Important Arguments in `generate.py`**
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--outdir` | `str` | `data/outputs` | Directory where generated images will be saved. |
+| `--conditioned_mode` | `str` | `imgtxt` | Conditioning mode: <br>• `txt`: text only <br>• `img`: image only <br>• `imgtxt`: image + text |
+| `--guidance_scale` | `float` | `10` | Guidance scale for classifier-free guidance (only for IC mode). Higher values enforce stronger text alignment. |
+| `--noise_level` | `int` | `100` | Noise level for image perturbation (only for TC mode). Controls diversity of generations. |
+| `--batch_size` | `int` | `1` | Number of samples processed per GPU step. |
+| `--from_file` | `str` | `None` | Path to a CSV file containing generation info (e.g., image path, prompt, etc.). |
+| `--root_path` | `str` | `None` | Root path to the original dataset (required for image-conditioned mode). |
+| `--n_samples` | `int` | `1` | Number of samples to generate per condition. |
+| `--img_save_size` | `int` | `256` | Resolution of saved images. |
 
 ## 🔍 Quality-Driven Contrastive Loss
 
