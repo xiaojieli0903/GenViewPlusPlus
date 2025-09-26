@@ -208,7 +208,7 @@ def parse_args():
         type=str,
         nargs="?",
         help="dir to write results to",
-        default="data/outputs"
+        default="data/output"
     )
     parser.add_argument(
         "--img_save_size",
@@ -266,18 +266,6 @@ def parse_args():
         type=float,
         default=0.0,
         help="ddim eta (eta=0.0 corresponds to deterministic sampling",
-    )
-    parser.add_argument(    # TODO 和img_save_size的区别
-        "--H",
-        type=int,
-        default=512,
-        help="image height, in pixel space",
-    )
-    parser.add_argument(
-        "--W",
-        type=int,
-        default=512,
-        help="image width, in pixel space",
     )
     parser.add_argument(
         "--C",

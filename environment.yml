@@ -1,12 +1,10 @@
-name: test_genview
+name: genview
 channels:
   - pytorch
   - defaults
 dependencies:
   - python=3.8.5
   - pip
-  # - cudatoolkit=11.3  TODO
-  # - pytorch=1.11.0
   - torchvision=0.12.0
   - numpy=1.19.2
   - pip:

@@ -198,8 +198,10 @@ def main():
     
     returned_model = load_model(opt.model_name, model_path=opt.model_path)
     
+    re_score_file = os.path.join(os.path.dirname(output_csv), "re-score.txt")
+
     start_time = time.time()
-    with open(output_csv, "a", newline="") as file1, open("re-score.txt", "a") as file3:
+    with open(output_csv, "a", newline="") as file1, open(re_score_file, "a") as file3:
         writer1 = csv.writer(file1)
 
         writer2 = None
@@ -240,6 +242,11 @@ def main():
     end_time = time.time()
     print(f"total time: {end_time - start_time:.2f} seconds")
 
+    if os.path.exists(re_score_file) and os.path.getsize(re_score_file) == 0:
+        try:
+            os.remove(re_score_file)
+        except Exception as e:
+            print(f"Error when deleting 're-score.txt': {e}")
 
 if __name__ =='__main__':
     main()

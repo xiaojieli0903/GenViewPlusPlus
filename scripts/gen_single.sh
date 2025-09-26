@@ -16,4 +16,4 @@ python data_generation/generate.py \
     --node_idx $node_idx \
     --n_nodes $n_nodes \
     --n_samples 1 \
-    --img_save_size 512
+    --img_save_size 256

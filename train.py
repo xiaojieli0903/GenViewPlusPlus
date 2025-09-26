@@ -60,9 +60,9 @@ def get_args_parser():
                         help='learning rate (absolute lr)')
     parser.add_argument('--beta1', type=float, default=0.9,
                         help='beta1 for AdamW optimizer')
-    parser.add_argument('--beta2', type=float, default=0.95,
+    parser.add_argument('--beta2', type=float, default=0.98,
                         help='beta2 for AdamW optimizer')
-    parser.add_argument('--blr', type=float, default=1e-3,
+    parser.add_argument('--blr', type=float, default=2.0e-4,
                         help='base learning rate: absolute_lr = base_lr * total_batch_size / 256')
     parser.add_argument('--min_lr', type=float, default=0.,
                         help='lower lr bound for cyclic schedulers that hit 0')
@@ -117,12 +117,11 @@ def get_args_parser():
     parser.add_argument('--syn_idx_list', nargs='+', default=[])
     parser.add_argument('--folder_suffix_list', nargs='+')
     parser.add_argument('--real_images_path_suffix', nargs='+')
-    parser.add_argument('--path1', default='/data3/datasets/CC3M/cc3m-wds/train_data',
-                        help='')    # TODO
-    parser.add_argument('--path2', default='/data1/datasets/CC3M/raw',
-                        help='')
     parser.add_argument('--sample_mode', type=str, choices=['default', 'fixed+random', 'random'],
-                        help='')
+                        help=help='Specifies the sampling mode for selecting image folders. Options are: '
+                         '`default` for using all folders, '
+                         '`fixed+random` for using the first folder and a random selection from the others, '
+                         '`random` for randomly selecting one folder.')
     parser.add_argument('--n_img', type=int, default=1,
                         help='number of images per caption sample, default: 1')
     parser.add_argument('--num_crop', type=int, default=1,
@@ -131,28 +130,37 @@ def get_args_parser():
                         help='Batch size per GPU.')
     parser.add_argument('--weak_aug', action='store_true',
                         help='use weak augmentation for each image')
-    
+    # 'path1' and 'path2' are useful when the merged dataset has duplicate image names and prompts, such as when using different batches of the same web-crawled dataset
+    parser.add_argument('--path1', default='/data3/datasets/CC3M/cc3m-wds/train_data',
+                        help='Path to the first directory containing images. Used when image paths start with "path1/".')
+    parser.add_argument('--path2', default='/data1/datasets/CC3M/raw',
+                        help='Path to the second directory containing images. Used when image paths start with "path2/".')
+
     # downsample aug parameter
-    parser.add_argument('--downsample', action='store_true',
+    parser.add_argument('--downsample', action='store_true', default=True,
                         help='randomly downsample images')
     parser.add_argument('--downsample_prob', default=0.05, type=float,
                         help='prob for applying this augmentation')
-    parser.add_argument('--down_res', default=None, nargs='+',
-                        help='A list of downsample resolutions')
+    parser.add_argument('--down_res', default=[64, 128], nargs='+', type=int,
+                        help='a list of downsample resolutions')
     parser.add_argument('--down_prob', default=None, nargs='+',
-                        help='A list of downsample probabilities (corresponds to each resolution)')
+                        help='a list of downsample probabilities (corresponds to each resolution)')
     parser.add_argument('--launcher', choices=["none", "slurm", "pytorch"], default="none", 
                         help="job launcher. Options: none (standalone), slurm (via srun), pytorch (via torchrun).")
     
-    parser.add_argument('--gamma1', type=float, default=2.0,
-                        help='')
-    parser.add_argument('--gamma2', type=float, default=2.0,
-                        help='')
+    # additional parameter
+    parser.add_argument('--gamma_ii', type=float, default=2.0,
+                        help='controls sensitivity for scaling image-to-image loss with quality-driven learning.')
+    parser.add_argument('--gamma_it', type=float, default=2.0,
+                        help='controls sensitivity for scaling image-to-text loss with quality-driven learning.')
     parser.add_argument('--epoch_switch', type=int, default=0)
     parser.add_argument('--early_loss_coefs', nargs='+', default=[1,0,0,0],
                         help="coefficients of original image loss, QD image loss, original text loss, QD text loss during early stages")
     parser.add_argument('--later_loss_coefs', nargs='+', default=[1,0,0,0],
                         help="coefficients of original image loss, QD image loss, original text loss, QD text loss during later stages")
+    parser.add_argument('--standard_array_path', type=str, default='data/pca_results/convnext_base_w-laion2b-s13b-b82k-augreg/eigenvecters/pca_vectors.npy',
+                    help='Path to store PCA feature values used in quality-driven learning.')
+    
     return parser
 
 
@@ -315,7 +323,7 @@ def main(args):
 
     qd_module = None
     if args.early_loss_coefs[1] or args.early_loss_coefs[3] or args.later_loss_coefs[1] or args.later_loss_coefs[3]:
-        qd_module = quality_driven_module()
+        qd_module = quality_driven_module(opt.standard_array_path)
         
     main_print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
@@ -429,7 +437,7 @@ def train_one_epoch(model: torch.nn.Module,
                 'text': text_input,
                 'image': pure_real_img,
                 'text_labels':outputs.get('text_labels'),
-                'gamma':{'gamma1':args.gamma1, 'gamma2':args.gamma2}
+                'gamma':{'gamma_ii':args.gamma_ii, 'gamma_it':args.gamma_it}
             }
             weight_dict = qd_module.compute_pairwise_weights(**kwargs)
         

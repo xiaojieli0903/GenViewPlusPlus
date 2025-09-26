@@ -22,8 +22,8 @@ Follow the steps below to set up the environment and install dependencies.
 Create a new Conda environment with Python 3.9 and activate it:
 
 ```bash
-conda create --name env_genview python=3.9 -y
-conda activate env_genview
+conda create --name genview python=3.9 -y
+conda activate genview
 ```
 
 ### Step 2: Install Required Packages
@@ -229,8 +229,8 @@ We randomly sample 10,000 images to compute PCA features. The threshold \( \alph
 Use the following command to extract features and compute PCA:
 
 ```bash
-python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
-    --input-list data_generation/adaptive_noise_level/clip_pca/cc3m_sampled_10000pair.csv \
+python data_generation/adaptive_noise_level/extract_features_pca.py \
+    --input-list data/CC3M/cc3m_sampled_10000pair.csv \
     --num-extract 10000 \
     --patch-size 32 \
     --num-vis 20 \
@@ -246,29 +246,55 @@ python data_generation/adaptive_noise_level/clip_pca/extract_features_pca.py \
 These PCA vectors are used to generate foreground and background attention maps during pretraining. We provide precomputed PCA vectors, which can be found at `data_generation/adaptive_noise_level/clip_pca/pca_results/convnext_base_w_laion2b-s13k-b82k-augreg/eigenvectors/pca_vectors.npy`
 
 ## 🔄 Training
+
+Example Training Command and Explanation of Some Parameters are as follows:
+
 ```bash
 torchrun --nproc_per_node=4 --nnodes=1 \
-  --node_rank=0 --master_port=20001 \
+  --node_rank=0 --master_port=50000 \
   train.py \
     --model base \
     --batch_size 64 \
     --epochs 25 --warmup_epochs 2 \
-    --blr 2.0e-4 --weight_decay 0.1 --beta1 0.9 --beta2 0.98 \
-    --num_workers 8 \
-    --output_dir ./output \
-    --log_dir ./output \
-    --csv_path /data/CC3M/cc3m.csv \
-    --folder_list /data/CC3M/ \
-                  /data/txt_scale-ada_noise100_times1 \
-                  /data/img_scale10.0_noise-ada_times1 \
-                  /data/imgtxt_scale-ada_noise-ada_times1 \
+    --output_dir output --log_dir output \
+    --csv_path /data/CC3M/cc3m.csv --syn_csv_path /data/CC3M/cc3m.csv \
+    --folder_list \
+      /data/CC3M/raw \
+      /data/CC3M/output/txt_scale-ada_noise100_times1_seed42 \
+      /data/CC3M/output/img_scale10.0_noise-ada_times1_seed42 \
+      /data/CC3M/output/imgtxt_scale-ada_noise-ada_times1_seed42 \
     --folder_suffix_list .jpg .jpg .jpg .jpg \
-    --real_images_path_suffix /data1/datasets/CC3M/raw .jpg \
-    --n_img 4 --downsample --downsample_prob 0.05 --down_res 64 128 \
-    --syn_idx_list 1 2 3 --syn_ratio 1.0 \
-    --syn_csv_path /data/CC3M/cc3m.csv \
-    --early_loss_coefs 1 0 1 0 --later_loss_coefs 1 1 1 1 \
+    --real_images_path_suffix data/CC3M/raw .jpg \
+    --n_img 4 --syn_idx_list 1 2 3 --syn_ratio 1.0 \
+    --early_loss_coefs 1 0 1 0 --later_loss_coefs 1 1 1 1
 ```
+
+### Data-related Parameters:
+- **`--csv_path`**: Specifies the path to the CSV file containing the dataset for training.
+- **`--syn_csv_path`**: Specifies the path to the CSV file for the synthetic dataset used in training.
+- **`--folder_list`**: Lists the directories containing images from different sources.
+- **`--folder_suffix_list`**: Specifies the file extensions of images in the directories listed in `--folder_list` (default is `.jpg`).
+- **`--real_images_path_suffix`**: Specifies the path and file extension for real images (default is `'data/CC3M/raw'` and `.jpg`).
+- **`--n_img`**: Defines the number of images to be used for each training sample (in this case, 4 images).
+- **`--syn_idx_list`**: Specifies the list of indices for the synthetic datasets to be used (in this case, datasets 1, 2, and 3, without 0).
+- **`--syn_ratio`**: Sets the ratio of synthetic data to be used in training (in this case, 1.0, meaning 100% synthetic data).
+
+### Loss-related Parameters:
+- **`--epoch_switch`**: Specifies the epoch at which the loss weight changes between two stages of training. The `epoch` variable ranges from 0 to the actual number of epochs minus one. When `epoch == args.epoch_switch`, the loss weights will switch to the values defined in `--later_loss_coefs`.
+- **`--early_loss_coefs`**: Defines the loss weights for the early stage of training (before `epoch == args.epoch_switch`). The 4 values correspond to the following losses:
+  - **img-img loss**: Weight for the image-to-image loss.
+  - **img-img loss with QD**: Weight for the image-to-image loss with Quality-Driven supervision.
+  - **img-txt loss**: Weight for the image-to-text loss.
+  - **img-txt loss with QD**: Weight for the image-to-text loss with Quality-Driven supervision.
+- **`--later_loss_coefs`**: Defines the loss weights for the later stage of training (after `epoch == args.epoch_switch`). These weights also correspond to the same 4 types of losses:
+  - **img-img loss**: Weight for the image-to-image loss.
+  - **img-img loss with QD**: Weight for the image-to-image loss with Quality-Driven supervision.
+  - **img-txt loss**: Weight for the image-to-text loss.
+  - **img-txt loss with QD**: Weight for the image-to-text loss with Quality-Driven supervision.
+- **`--gamma_ii`**: Controls sensitivity for scaling image-to-image loss with QD (default is 2).
+- **`--gamma_it`**: Controls sensitivity for scaling image-to-text loss with QD (default is 2).
+- **`--standard_array_path`**: Path to store PCA feature values used in quality-driven learning.
+
 
 ## Downsteam Tasks
 ### Linear Probe

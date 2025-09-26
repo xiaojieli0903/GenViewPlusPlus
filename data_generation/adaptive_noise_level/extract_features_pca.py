@@ -121,7 +121,7 @@ def extract_features(image_paths, output_dir, model, preprocess, patch_size=14, 
 
         # Extract features
         with torch.no_grad(), torch.cuda.amp.autocast():
-            _, batch_features = model.encode_image(batch_images)    # TODO
+            _, batch_features = model.encode_image(batch_images)
             batch_features = batch_features.cpu().numpy()
         # Save features
         for idx, path in enumerate(batch_paths):

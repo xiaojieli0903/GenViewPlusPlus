@@ -87,7 +87,7 @@ class SupconDataset(Dataset):
         random_value = random.random()
         
         image_name = self.images[idx]
-        if image_name.startswith("path1") or image_name.startswith("path2"):
+        if image_name.startswith("path1/") or image_name.startswith("path2/"):
             real_path = self.path_dict[image_name[:5]]
             image_name = image_name[6:]
         else:

@@ -13,6 +13,7 @@ class quality_driven_module():
                  clip_model_name: str = 'convnext_base_w',
                  distance_type: str = 'cosine',
                  vis_input: bool = False,
+                 standard_array_path: str = 'data/pca_results/convnext_base_w-laion2b-s13b-b82k-augreg/eigenvecters/pca_vectors.npy'
                  ):
         self.clip_model_name = clip_model_name
         self.distance_type = distance_type
@@ -29,8 +30,8 @@ class quality_driven_module():
         for param in self.clip_model.parameters():
             param.requires_grad = False
         self.standard_array = torch.Tensor(np.load(
-                "data_generation/adaptive_noise_level/clip_pca/pca_results/convnext_base_w-laion2b-s13b-b82k-augreg/eigenvecters/pca_vectors.npy").reshape(
-                -1)).cuda() # TODO
+                standard_array_path).reshape(
+                -1)).cuda()
         print(f'Load standard_array done, shape = {self.standard_array.shape}')
         self.patch_number = 224 // self.patch_size
         
@@ -175,7 +176,7 @@ class quality_driven_module():
             
             sim_fg = self.calculate_sim(z_fg_tensor, z_fg_tensor, pairwise=True)    # [n_views * bsz, n_views * bsz]
             sim_bg = self.calculate_sim(z_bg_tensor, z_bg_tensor, pairwise=True)
-            score, loss_weight = self.calculate_weight(sim_fg, sim_bg, gamma['gamma1'], mask)
+            score, loss_weight = self.calculate_weight(sim_fg, sim_bg, gamma['gamma_ii'], mask)
 
         # quality driven loss weight for image-text pairs
         loss_weight_img_txt = None
@@ -196,6 +197,6 @@ class quality_driven_module():
             
             # loss weight matrix
             v_label_matrix = torch.eq(labels.view(-1, 1), t_labels.contiguous().view(1, -1)).float()
-            score_img_txt, loss_weight_img_txt = self.calculate_weight(sim_img_txt, sim_bg_img_views, gamma['gamma2'], v_label_matrix)
+            score_img_txt, loss_weight_img_txt = self.calculate_weight(sim_img_txt, sim_bg_img_views, gamma['gamma_it'], v_label_matrix)
         
         return {"loss_weight":loss_weight, "loss_weight_img_txt":loss_weight_img_txt}
